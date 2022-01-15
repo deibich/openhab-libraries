@@ -1,0 +1,721 @@
+uid: deibich:blockly:dateTime
+tags: []
+props:
+  parameters: []
+  parameterGroups: []
+component: BlockLibrary
+config:
+  name: dateTime
+slots:
+  blocks:
+    - component: BlockType
+      config:
+        type: get_zdt_now
+        inputsInline: true
+        output: ZonedDateTime
+        message0: now
+        colour: 90
+        tooltip: >
+          Obtains the current date-time from the system clock in the default time-zone.
+
+          Returns: ZonedDateTime
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZonedDateTime.html#now()
+      slots:
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{utility:deibich_blockly_ZonedDateTime}}.now()"
+    - component: BlockType
+      config:
+        type: get_zdt_from_date_and_time_fields
+        inputsInline: true
+        output: ZonedDateTime
+        message0: ZDT with date %1-%2-%3 and time %4:%5:%6
+        colour: 90
+        tooltip: >
+          Creates a ZonedDateTime based on the given input for date and time with nanos set to 0 and the system's time-zone. Values must be valid.
+
+
+          year: the year  
+
+          month: 1 to 12  
+
+          day: 1 to 28-31  
+
+          hour: 0 to 23  
+
+          minute: 0 to 59  
+
+          second: 0 to 59
+
+
+          Returns: ZonedDateTime
+        helpUrl: ""
+        args0:
+          - name: YEAR
+            type: field_number
+            min: 1970
+            max: 999999999
+            precision: 1
+            value: 2022
+          - name: MONTH
+            type: field_number
+            min: 1
+            max: 12
+            precision: 1
+            value: 1
+          - name: DAY
+            type: field_number
+            min: 1
+            max: 31
+            precision: 1
+            value: 15
+          - name: HOUR
+            type: field_number
+            min: 0
+            max: 23
+            precision: 1
+            value: 13
+          - name: MINUTE
+            type: field_number
+            min: 0
+            max: 59
+            precision: 1
+            value: 30
+          - name: SECOND
+            type: field_number
+            min: 0
+            max: 59
+            precision: 1
+            value: 0
+      slots:
+        code:
+          - component: BlockCodeTemplate
+            config:
+              template: "{{utility:blockly_deibich_create_zdt_from_components}}({{field:YEAR}}, {{field:MONTH}}, {{field:DAY}}, {{field:HOUR}}, {{field:MINUTE}}, {{field:SECOND}}, 0, {{utility:deibich_blockly_ZonedDateTime}}.now().getOffset().getId(), {{utility:deibich_blockly_ZonedDateTime}}.now().getZone().getId())"
+    - component: BlockType
+      config:
+        type: get_zdt_from_oh_item
+        inputsInline: true
+        output: ZonedDateTime
+        message0: ZDT from item %1
+        colour: 90
+        tooltip: >
+          Get the ZonedDateTime from item's state.
+
+          Requires: Item of type DateTime (No check if valid)
+
+          Returns: ZonedDateTime
+        helpUrl: https://www.openhab.org/javadoc/latest/org/openhab/core/library/types/datetimetype#getZonedDateTime()
+        args0:
+          - name: ITEM
+            type: input_value
+            check: oh_item
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              fields:
+                itemName: Date_Time_Item
+              name: ITEM
+              shadow: true
+              type: oh_item
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: itemRegistry.getItem({{input:ITEM}}).getState().getZonedDateTime()
+    - component: BlockType
+      config:
+        type: set_datetime_item_state_to_zdt
+        inputsInline: true
+        message0: set item %1 to ZDT %2
+        previousStatement: ""
+        nextStatement: ""
+        colour: 0
+        tooltip: >
+          Update state of a DateTime item to ZonedDateTime.
+
+          Requires: DateTypeItem, ZonedDateTime
+        helpUrl: ""
+        args0:
+          - name: ITEM
+            type: input_value
+            check: oh_item
+          - name: DATE
+            type: input_value
+            check: ZonedDateTime
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              fields:
+                itemName: Date_Time_Item
+              name: ITEM
+              shadow: true
+              type: oh_item
+          - component: PresetInput
+            config:
+              name: DATE
+              shadow: true
+              type: oh_zdt
+        code:
+          - component: BlockCodeTemplate
+            config:
+              template: >
+                events.sendCommand({{input:ITEM}}, new {{utility:deibich_blockly_DateTimeType}}({{input:DATE}}));
+    - component: Separator
+      config:
+        gap: 50
+    - component: BlockType
+      config:
+        type: zdt_set_time_with_fields
+        inputsInline: true
+        output: ZonedDateTime
+        message0: copy of %1 with time set to %2:%3:%4
+        colour: 90
+        tooltip: >
+          Returns a copy of this ZonedDateTime with the hour-of-day, minutes and seconds altered.
+
+          Hours: 0-24 Minutes: 0-59 Seconds: 0-59
+
+          Requires: ZonedDateTime
+
+          Returns: ZonedDateTime
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZonedDateTime.html#withHour(int)
+        args0:
+          - name: DATE
+            type: input_value
+            check: ZonedDateTime
+          - name: HOURS
+            type: field_number
+            min: 0
+            max: 23
+            precision: 1
+            value: 13
+          - name: MINUTES
+            type: field_number
+            min: 0
+            max: 59
+            precision: 1
+            value: 30
+          - name: SECONDS
+            type: field_number
+            min: 0
+            max: 59
+            precision: 1
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              name: DATE
+              type: oh_zdt
+              shadow: true
+        code:
+          - component: BlockCodeTemplate
+            config:
+              template: "{{input:DATE}}.withHour({{field:HOURS}}).withMinute({{field:MINUTES}}).withSecond({{field:SECONDS}})"
+    - component: BlockType
+      config:
+        type: zdt_add_unit_to_zdt
+        inputsInline: true
+        output: ZonedDateTime
+        message0: copy of %1 %2 %3 %4
+        colour: 90
+        tooltip: >
+          Returns a copy of this ZonedDateTime with the specified value added or subtracted. This block uses a floor operation on the provided value.
+
+          Requires: ZonedDateTime, integer
+
+          Returns: ZonedDateTime
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZonedDateTime.html#withYear(int)
+        args0:
+          - name: ZDT
+            type: input_value
+            check: ZonedDateTime
+          - name: OPERAND
+            type: field_dropdown
+            options:
+              - - +
+                - plus
+              - - "-"
+                - minus
+          - name: VALUE
+            type: input_value
+            check: Number
+          - name: UNIT
+            type: field_dropdown
+            options:
+              - - nanos
+                - Nanos
+              - - seconds
+                - Seconds
+              - - minutes
+                - Minutes
+              - - hours
+                - Hours
+              - - days
+                - Days
+              - - weeks
+                - Weeks
+              - - months
+                - Months
+              - - years
+                - Years
+      slots:
+        toolbox:
+          - component: PresetField
+            config:
+              name: OPERAND
+              value: plus
+          - component: PresetField
+            config:
+              name: UNIT
+              value: Minutes
+          - component: PresetInput
+            config:
+              name: VALUE
+              type: math_number
+              shadow: true
+              fields:
+                NUM: 10
+          - component: PresetInput
+            config:
+              name: ZDT
+              type: oh_zdt
+              shadow: true
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{input:ZDT}}.{{field:OPERAND}}{{field:UNIT}}(Math.floor({{input:VALUE}}))"
+    - component: BlockType
+      config:
+        type: get_zdt_with_altered_unit
+        inputsInline: true
+        output: ZonedDateTime
+        message0: copy of %1 with %2 altered to %3
+        colour: 90
+        tooltip: >
+          Returns a copy of this ZonedDateTime with the selected field altered. This block uses a floor operation on the provided value. Does not check if the provided value is valid.
+
+          Requires: ZonedDateTime, integer
+
+          Returns: ZonedDateTime
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/LocalDateTime.html#withYear(int)
+        args0:
+          - name: DATE1
+            type: input_value
+            check: ZonedDateTime
+          - name: COMPONENT
+            type: field_dropdown
+            options:
+              - - nano
+                - withNano
+              - - second
+                - withSecond
+              - - minute
+                - withMinute
+              - - hour
+                - withHour
+              - - month
+                - withMonth
+              - - year
+                - withYear
+              - - day of month
+                - withDayOfMonth
+              - - day of year
+                - withDayOfYear
+          - name: VALUE
+            type: input_value
+            check: Number
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              name: DATE1
+              type: oh_zdt
+              shadow: true
+          - component: PresetInput
+            config:
+              name: VALUE
+              type: math_number
+              shadow: true
+              fields:
+                NUM: 10
+          - component: PresetField
+            config:
+              name: COMPONENT
+              value: withHour
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{input:DATE1}}.{{field:COMPONENT}}(Math.floor({{input:VALUE}}))"
+    - component: Separator
+      config:
+        gap: 50
+    - component: BlockType
+      config:
+        type: compare_zdt_with_zdt
+        inputsInline: true
+        output: Boolean
+        message0: "is %1 %2 %3 use %5 with resolution of %4"
+        colour: 210
+        tooltip: >
+          Checks if the instant of this date-time is before/after/equal that of the specified date-time.
+
+          Requires: Two ZonedDateTime
+
+          Returns: Amount of selected units between both ZonedDateTimes
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
+        args0:
+          - name: DATE1
+            type: input_value
+            check: ZonedDateTime
+          - name: COMPAREOP
+            type: field_dropdown
+            options:
+              - - before
+                - Before
+              - - equal to
+                - Equal
+              - - after
+                - After
+          - name: DATE2
+            type: input_value
+            check: ZonedDateTime
+          - name: PRECISION
+            type: field_dropdown
+            options:
+              - - years
+                - year
+              - - months
+                - months
+              - - days
+                - after
+              - - hours
+                - hours
+              - - minutes
+                - minutes
+              - - seconds
+                - seconds
+              - - nanos
+                - nanos
+          - name: COMP_DATETIME
+            type: field_dropdown
+            options:
+              - - date and time
+                - 'dateandtime'
+              - - date
+                - 'date'
+              - - time
+                - 'time'
+      slots:
+        toolbox:
+          - component: PresetField
+            config:
+              name: COMPAREOP
+              value: Before
+          - component: PresetInput
+            config:
+              name: DATE1
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE2
+              shadow: true
+              type: oh_zdt
+          - component: PresetField
+            config:
+              name: PRECISION
+              value: seconds
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{utility:deibich_blockly_compare_zdt_with_precision}}({{input:DATE1}}, {{input:DATE2}}, '{{field:COMPAREOP}}', '{{field:PRECISION}}', '{{field:COMP_DATETIME}}')"
+    - component: Separator
+      config:
+        gap: 50
+    - component: BlockType
+      config:
+        type: get_zdt_component
+        inputsInline: true
+        output: Number
+        message0: "%1 from %2"
+        colour: 230
+        tooltip: >
+          Returns the selected field as Number.
+
+          nano: 0 to 0 to 999999999
+
+          second: 0 to 59
+
+          minute: 0 to 59
+
+          hour: 0 to 23
+
+          day of month: 1 to 28-31
+
+          month: 1 to 12
+
+          year: the year
+
+          day of week: 1 to 7 (1 for Monday, ..., 7 for Sunday)
+
+          day of year: 1 to 365-366
+
+          Requires: ZonedDateTime
+
+          Returns: Number          
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/LocalDateTime.html#getYear()
+        args0:
+          - name: COMPONENT
+            type: field_dropdown
+            options:
+              - - nano
+                - getNano
+              - - second
+                - getSecond
+              - - minute
+                - getMinute
+              - - hour
+                - getHour
+              - - day of month
+                - getDayOfMonth
+              - - month
+                - getMonthValue
+              - - year
+                - getYear
+              - - day of week
+                - getDayOfWeek
+              - - day of year
+                - getDayOfYear
+          - name: DATE1
+            type: input_value
+            check: ZonedDateTime
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              name: DATE1
+              type: oh_zdt
+              shadow: true
+          - component: PresetField
+            config:
+              name: COMPONENT
+              value: getDayOfMonth
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{utility:deibich_blockly_get_zdt_component_from_returned_value}}({{input:DATE1}}.{{field:COMPONENT}}())"
+    - component: BlockType
+      config:
+        type: units_between_two_zdt
+        inputsInline: true
+        output: Number
+        message0: "%1 between %2 and %3"
+        colour: 230
+        tooltip: >
+          Calculates the amount of time between two ZonedDateTime objects. The result will be negative if the second object is before the first one.
+
+          Requires: Two ZonedDateTime
+
+          Returns: Amount of selected units between both ZonedDateTimes
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/temporal/TemporalUnit.html#between(java.time.temporal.Temporal,java.time.temporal.Temporal)
+        args0:
+          - name: UNITS
+            type: field_dropdown
+            options:
+              - - nanos
+                - NANOS
+              - - seconds
+                - SECONDS
+              - - minutes
+                - MINUTES
+              - - hours
+                - HOURS
+              - - days
+                - DAYS
+              - - weeks
+                - WEEKS
+              - - months
+                - MONTHS
+          - name: DATE1
+            type: input_value
+            check: ZonedDateTime
+          - name: DATE2
+            type: input_value
+            check: ZonedDateTime
+      slots:
+        toolbox:
+          - component: PresetField
+            config:
+              name: UNITS
+              value: MINUTES
+          - component: PresetInput
+            config:
+              name: DATE1
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE2
+              shadow: true
+              type: oh_zdt
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{utility:deibich_blockly_ChronoUnit}}.{{field:UNITS}}.between({{input:DATE1}}, {{input:DATE2}})"
+    - component: Separator
+      config:
+        gap: 100
+    - component: BlockType
+      config:
+        type: get_zoneid_from_string
+        inputsInline: true
+        output: ZoneId
+        message0: get ZoneId from %1
+        colour: 90
+        tooltip: >
+          Obtains an instance of ZoneId from an ID ensuring that the ID is valid and available for use.
+
+          Requires: String according to ZoneId.of(String zoneId). See under Help. If String is empty return system default ZoneID
+
+          Returns: ZoneId
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/ZoneId.html#of(java.lang.String)
+        args0:
+          - name: TIMEZONEID
+            type: input_value
+            check: String
+      slots:
+        toolbox:
+          - component: PresetInput
+            config:
+              name: TIMEZONEID
+              type: text
+              shadow: true
+              fields:
+                TEXT: ""
+        code:
+          - component: BlockCodeTemplate
+            config:
+              order: ORDER_ATOMIC
+              template: "{{utility:deibich_blockly_getZoneIdFromString}}({{input:TIMEZONEID}})"
+  utilities:
+    - component: UtilityJavaType
+      config:
+        javaClass: java.time.ZonedDateTime
+        name: deibich_blockly_ZonedDateTime
+    - component: UtilityJavaType
+      config:
+        javaClass: java.time.LocalDateTime
+        name: deibich_blockly_LocalDateTime
+    - component: UtilityJavaType
+      config:
+        javaClass: java.time.LocalDate
+        name: deibich_blockly_LocalDate
+    - component: UtilityJavaType
+      config:
+        javaClass: java.time.LocalTime
+        name: deibich_blockly_LocalTime
+    - component: UtilityJavaType
+      config:
+        javaClass: java.time.temporal.ChronoUnit
+        name: deibich_blockly_ChronoUnit
+    - component: UtilityJavaType
+      config:
+        name: deibich_blockly_ZoneId
+        javaClass: java.time.ZoneId
+    - component: UtilityJavaType
+      config:
+        name: deibich_blockly_DateTimeFormatter
+        javaClass: java.time.format.DateTimeFormatter
+    - component: UtilityJavaType
+      config:
+        name: deibich_blockly_DateTimeType
+        javaClass: org.openhab.core.library.types.DateTimeType
+    - component: UtilityFunction
+      config:
+        name: deibich_blockly_getZoneIdFromString
+        code: >
+          function {{name}}(zoneIdString) {
+            if(typeof zoneIdString !== 'string')
+            {
+              zoneIdString = '';
+            }
+            try {
+              return {{deibich_blockly_ZoneId}}.of(zoneIdString)
+            } catch(e) {
+            
+            }
+            return {{deibich_blockly_ZoneId}}.systemDefault();
+          }
+    - component: UtilityFunction
+      config:
+        name: deibich_blockly_get_zdt_component_from_returned_value
+        code: >
+          function {{name}}(value) {
+            if(typeof value == 'number')
+            {
+              return value;
+            }
+            return value.getValue()
+          }
+    - component: UtilityFunction
+      config:
+        name: deibich_blockly_compare_zdt_with_precision
+        code: >
+          function {{name}}(date1, date2, compareOp, precision, compDate) {
+            switch (precision) {
+              case 'years':
+                date2 = date2.withMonth(date1.getMonthValue());
+              case 'months':
+                date2 = date2.withDayOfMonth(date1.getDayOfMonth());
+              case 'days':
+                date2 = date2.withHour(date1.getHour());
+              case 'hours':
+                date2 = date2.withMinute(date1.getMinute());
+              case 'minutes':
+                date2 = date2.withSecond(date1.getSecond());
+              case 'seconds':
+                date2 = date2.withNano(date1.getNano());
+            }
+            if(compDate === 'date') {
+              date1 = date1.toLocalDate();
+              date2 = date2.toLocalDate();
+            } else if(compDate === 'time')
+            {
+              date1 = date1.toLocalTime();
+              date2 = date2.toLocalTime();
+            }
+            switch (compareOp) {
+              case 'Before':
+                return date1.isBefore(date2);
+              case 'After':
+                return date1.isAfter(date2);
+              case 'Equal':
+                return date1.isEqual(date2);
+            }
+          }
+    - component: UtilityFunction
+      config:
+        name: blockly_deibich_create_zdt_from_components
+        code: >
+          function {{name}} (year, month, day, hour, minute, second, nano, offsetString, timezoneString)
+          {
+            stringToParse = '' + year;
+            stringToParse += '-' + ('0' + month).slice(-2);
+            stringToParse += '-' + ('0' + day).slice(-2);
+            stringToParse += 'T'+('0' + hour).slice(-2);
+            stringToParse += ':' + ('0' + minute).slice(-2);
+            stringToParse += ':' + ('0' + second).slice(-2);
+            stringToParse += '.' +nano + offsetString + '[' + timezoneString + ']';
+            
+            return {{deibich_blockly_ZonedDateTime}}.parse(stringToParse, {{deibich_blockly_DateTimeFormatter}}.ISO_ZONED_DATE_TIME);
+          }
