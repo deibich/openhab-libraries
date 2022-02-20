@@ -368,7 +368,7 @@ slots:
 
           Requires: Two ZonedDateTime
 
-          Returns: Amount of selected units between both ZonedDateTimes
+          Returns: True/False depending on the selected compare-method.
         helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
         args0:
           - name: DATE1
@@ -712,10 +712,10 @@ slots:
             stringToParse = '' + year;
             stringToParse += '-' + ('0' + month).slice(-2);
             stringToParse += '-' + ('0' + day).slice(-2);
-            stringToParse += 'T'+('0' + hour).slice(-2);
+            stringToParse += 'T' + ('0' + hour).slice(-2);
             stringToParse += ':' + ('0' + minute).slice(-2);
             stringToParse += ':' + ('0' + second).slice(-2);
-            stringToParse += '.' +nano + offsetString + '[' + timezoneString + ']';
+            stringToParse += '.' + nano + offsetString + '[' + timezoneString + ']';
             
             return {{deibich_blockly_ZonedDateTime}}.parse(stringToParse, {{deibich_blockly_DateTimeFormatter}}.ISO_ZONED_DATE_TIME);
           }
