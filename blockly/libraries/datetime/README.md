@@ -57,6 +57,10 @@ Returns a copy of the provided ZonedDateTime with the selected field altered.
 Checks if the instant of the first ZonedDateTime is before/after/equal that of the second ZonedDateTime. You can select if you want to compare all components, date only or time only. 
 ![compare_zdt_with_zdt|690x34, 75%](images/compare_zdt_with_zdt.png)
 
+### is \<zdt1\> between \<zdt2\> and \<zdt2\> use date and time/date/time
+Checks if the instant of this date-time is before/after/equal that of the specified date-time. You can select if you want to compare all components, date only or time only. 
+![compare_zdt_between_zdt_and_zdt| 75%](images/compare_zdt_between_zdt_and_zdt.png)
+
 ### get \<datetime_unit\> from \<zdt\>
 Returns the selected unit as number.  
 ![get_zdt_component|641x76, 50%](images/get_zdt_component.png)
@@ -66,6 +70,9 @@ Calculates the amount of time between two ZonedDateTime objects. The result will
 ![units_between_two_zdt|690x52, 50%](images/units_between_two_zdt.png)
 
 ## Changelog
+### Version 0.2
+- Fixed wrong tooltip
+- Added block compare_zdt_between_zdt_and_zdt
 ### Version 0.1
 - initial release
 

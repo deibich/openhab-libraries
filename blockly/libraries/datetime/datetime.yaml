@@ -437,6 +437,60 @@ slots:
             config:
               order: ORDER_ATOMIC
               template: "{{utility:deibich_blockly_compare_zdt_with_precision}}({{input:DATE1}}, {{input:DATE2}}, '{{field:COMPAREOP}}', '{{field:PRECISION}}', '{{field:COMP_DATETIME}}')"
+    - component: BlockType
+      config:
+        type: compare_zdt_between_zdt_and_zdt
+        colour: 210
+        message0: is %1 between %2 and %3 use %4
+        output: Boolean
+        tooltip: >
+          Check if the instant of the first ZonedDateTime is between the two other ZonedDateTime.
+
+          Requires: Three ZonedDateTime
+
+          Returns: True/False if provides ZonedDateTime is between other two or not.
+        inputsInline: true
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
+        args0:
+          - name: DATE1
+            check: ZonedDateTime
+            type: input_value
+          - name: DATE2
+            check: ZonedDateTime
+            type: input_value
+          - name: DATE3
+            check: ZonedDateTime
+            type: input_value
+          - name: COMP_DATETIME
+            type: field_dropdown
+            options:
+              - - date and time
+                - datetime
+              - - date
+                - date
+              - - time
+                - time
+      slots:
+        code:
+          - component: BlockCodeTemplate
+            config:
+              template: "{{utility:blockly_deibich_compare_zdt_between_zdt_and_zdt}}({{input:DATE1}}, {{input:DATE2}}, {{input:DATE3}}, '{{field:COMP_DATETIME}}')"
+        toolbox:
+          - component: PresetInput
+            config:
+              name: DATE1
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE2
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE3
+              shadow: true
+              type: oh_zdt
     - component: Separator
       config:
         gap: 50
@@ -718,4 +772,11 @@ slots:
             stringToParse += '.' + nano + offsetString + '[' + timezoneString + ']';
             
             return {{deibich_blockly_ZonedDateTime}}.parse(stringToParse, {{deibich_blockly_DateTimeFormatter}}.ISO_ZONED_DATE_TIME);
+          }
+    - component: UTilityFunction
+      config:
+        name: blockly_deibich_compare_zdt_between_zdt_and_zdt
+        code: >
+          function {{name}} (zdt1, zdt2, zdt3, compDate) {
+            return {{deibich_blockly_compare_zdt_with_precision}}(zdt2, zdt1, 'Before', 'nanos', compDate) && {{deibich_blockly_compare_zdt_with_precision}}(zdt1, zdt3, 'Before', 'nanos', compDate)
           }
