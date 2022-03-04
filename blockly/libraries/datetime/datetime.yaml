@@ -383,6 +383,10 @@ slots:
                 - Equal
               - - after
                 - After
+              - - before or equal
+                - BeforeEqual
+              - - after or equal
+                - AfterEqual
           - name: DATE2
             type: input_value
             check: ZonedDateTime
@@ -448,7 +452,7 @@ slots:
 
           Requires: Three ZonedDateTime
 
-          Returns: True/False if provides ZonedDateTime is between other two or not.
+          Returns: True/False if provides ZonedDateTime is between or equal the other two or not.
         inputsInline: true
         helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
         args0:
@@ -782,5 +786,5 @@ slots:
         name: blockly_deibich_compare_zdt_between_zdt_and_zdt
         code: >
           function {{name}} (zdt1, zdt2, zdt3, compDate) {
-            return {{deibich_blockly_compare_zdt_with_precision}}(zdt2, zdt1, 'Before', 'nanos', compDate) && {{deibich_blockly_compare_zdt_with_precision}}(zdt1, zdt3, 'Before', 'nanos', compDate)
+            return {{deibich_blockly_compare_zdt_with_precision}}(zdt2, zdt1, 'BeforeEqual', 'nanos', compDate) && {{deibich_blockly_compare_zdt_with_precision}}(zdt1, zdt3, 'BeforeEqual', 'nanos', compDate)
           }
