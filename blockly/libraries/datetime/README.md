@@ -58,7 +58,7 @@ Checks if the instant of the first ZonedDateTime is before/after/equal that of t
 ![compare_zdt_with_zdt|690x34, 75%](images/compare_zdt_with_zdt.png)
 
 ### is \<zdt1\> between \<zdt2\> and \<zdt2\> use date and time/date/time
-Checks if the instant of this date-time is before/after/equal that of the specified date-time. You can select if you want to compare all components, date only or time only. 
+Check if the instant of the first ZonedDateTime is between the two other ZonedDateTime. You can select if you want to compare all components, date only or time only. 
 ![compare_zdt_between_zdt_and_zdt| 75%](images/compare_zdt_between_zdt_and_zdt.png)
 
 ### get \<datetime_unit\> from \<zdt\>
