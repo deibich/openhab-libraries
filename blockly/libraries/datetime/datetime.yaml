@@ -368,7 +368,7 @@ slots:
 
           Requires: Two ZonedDateTime
 
-          Returns: Amount of selected units between both ZonedDateTimes
+          Returns: True/False depending on the selected compare-method.
         helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
         args0:
           - name: DATE1
@@ -383,6 +383,10 @@ slots:
                 - Equal
               - - after
                 - After
+              - - before or equal
+                - BeforeEqual
+              - - after or equal
+                - AfterEqual
           - name: DATE2
             type: input_value
             check: ZonedDateTime
@@ -437,6 +441,60 @@ slots:
             config:
               order: ORDER_ATOMIC
               template: "{{utility:deibich_blockly_compare_zdt_with_precision}}({{input:DATE1}}, {{input:DATE2}}, '{{field:COMPAREOP}}', '{{field:PRECISION}}', '{{field:COMP_DATETIME}}')"
+    - component: BlockType
+      config:
+        type: compare_zdt_between_zdt_and_zdt
+        colour: 210
+        message0: is %1 between %2 and %3 use %4
+        output: Boolean
+        tooltip: >
+          Check if the instant of the first ZonedDateTime is between the two other ZonedDateTime.
+
+          Requires: Three ZonedDateTime
+
+          Returns: True/False if provides ZonedDateTime is between or equal the other two or not.
+        inputsInline: true
+        helpUrl: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/chrono/ChronoZonedDateTime.html#isBefore(java.time.chrono.ChronoZonedDateTime)
+        args0:
+          - name: DATE1
+            check: ZonedDateTime
+            type: input_value
+          - name: DATE2
+            check: ZonedDateTime
+            type: input_value
+          - name: DATE3
+            check: ZonedDateTime
+            type: input_value
+          - name: COMP_DATETIME
+            type: field_dropdown
+            options:
+              - - date and time
+                - datetime
+              - - date
+                - date
+              - - time
+                - time
+      slots:
+        code:
+          - component: BlockCodeTemplate
+            config:
+              template: "{{utility:blockly_deibich_compare_zdt_between_zdt_and_zdt}}({{input:DATE1}}, {{input:DATE2}}, {{input:DATE3}}, '{{field:COMP_DATETIME}}')"
+        toolbox:
+          - component: PresetInput
+            config:
+              name: DATE1
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE2
+              shadow: true
+              type: oh_zdt
+          - component: PresetInput
+            config:
+              name: DATE3
+              shadow: true
+              type: oh_zdt
     - component: Separator
       config:
         gap: 50
@@ -691,8 +749,8 @@ slots:
               date2 = date2.toLocalDate();
             } else if(compDate === 'time')
             {
-              date1 = date1.toLocalTime();
-              date2 = date2.toLocalTime();
+              date1 = date1.toOffsetDateTime();
+              date2 = date2.toOffsetDateTime();
             }
             switch (compareOp) {
               case 'Before':
@@ -701,6 +759,10 @@ slots:
                 return date1.isAfter(date2);
               case 'Equal':
                 return date1.isEqual(date2);
+              case 'BeforeEqual':
+                return date1.isBefore(date2) || date1.isEqual(date2);
+              case 'AfterEqual':
+                return date1.isAfter(date2) || date1.isEqual(date2);
             }
           }
     - component: UtilityFunction
@@ -712,10 +774,17 @@ slots:
             stringToParse = '' + year;
             stringToParse += '-' + ('0' + month).slice(-2);
             stringToParse += '-' + ('0' + day).slice(-2);
-            stringToParse += 'T'+('0' + hour).slice(-2);
+            stringToParse += 'T' + ('0' + hour).slice(-2);
             stringToParse += ':' + ('0' + minute).slice(-2);
             stringToParse += ':' + ('0' + second).slice(-2);
-            stringToParse += '.' +nano + offsetString + '[' + timezoneString + ']';
+            stringToParse += '.' + nano + offsetString + '[' + timezoneString + ']';
             
             return {{deibich_blockly_ZonedDateTime}}.parse(stringToParse, {{deibich_blockly_DateTimeFormatter}}.ISO_ZONED_DATE_TIME);
+          }
+    - component: UTilityFunction
+      config:
+        name: blockly_deibich_compare_zdt_between_zdt_and_zdt
+        code: >
+          function {{name}} (zdt1, zdt2, zdt3, compDate) {
+            return {{deibich_blockly_compare_zdt_with_precision}}(zdt2, zdt1, 'BeforeEqual', 'nanos', compDate) && {{deibich_blockly_compare_zdt_with_precision}}(zdt1, zdt3, 'BeforeEqual', 'nanos', compDate)
           }
