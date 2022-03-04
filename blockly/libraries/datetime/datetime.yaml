@@ -745,8 +745,8 @@ slots:
               date2 = date2.toLocalDate();
             } else if(compDate === 'time')
             {
-              date1 = date1.toLocalTime();
-              date2 = date2.toLocalTime();
+              date1 = date1.toOffsetDateTime();
+              date2 = date2.toOffsetDateTime();
             }
             switch (compareOp) {
               case 'Before':
@@ -755,6 +755,10 @@ slots:
                 return date1.isAfter(date2);
               case 'Equal':
                 return date1.isEqual(date2);
+              case 'BeforeEqual':
+                return date1.isBefore(date2) || date1.isEqual(date2);
+              case 'AfterEqual':
+                return date1.isAfter(date2) || date1.isEqual(date2);
             }
           }
     - component: UtilityFunction
