@@ -71,6 +71,7 @@ Calculates the amount of time between two ZonedDateTime objects. The result will
 
 ## Changelog
 ### Version 0.2
+- Fixed comparison with time only
 - Fixed wrong tooltip
 - Added block compare_zdt_between_zdt_and_zdt
 ### Version 0.1
