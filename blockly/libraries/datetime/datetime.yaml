@@ -448,7 +448,7 @@ slots:
         message0: is %1 between %2 and %3 use %4
         output: Boolean
         tooltip: >
-          Check if the instant of the first ZonedDateTime is between the two other ZonedDateTime.
+          Check if the instant of the first ZonedDateTime is between the two other ZonedDateTime. 
 
           Requires: Three ZonedDateTime
 
@@ -758,11 +758,11 @@ slots:
               case 'After':
                 return date1.isAfter(date2);
               case 'Equal':
-                return date1.isEqual(date2);
+                return date1.equals(date2);
               case 'BeforeEqual':
-                return date1.isBefore(date2) || date1.isEqual(date2);
+                return date1.isBefore(date2) || date1.equals(date2);
               case 'AfterEqual':
-                return date1.isAfter(date2) || date1.isEqual(date2);
+                return date1.isAfter(date2) || date1.equals(date2);
             }
           }
     - component: UtilityFunction
