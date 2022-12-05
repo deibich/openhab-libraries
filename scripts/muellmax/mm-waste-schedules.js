@@ -79,7 +79,6 @@ var userSettings = {
   }
 };
 
-
 // Use custom Logger. openhab-js logger is one trace by default. I don't like that.
 var logger = Java.type('org.slf4j.LoggerFactory').getLogger('deibich.scripts.mm-waste-schedules');
 
@@ -461,7 +460,7 @@ function createAndUpdateItems() {
 
     if (wasteItemForName === undefined) {
       // Could not find item
-      if (userSettings.items.recreateItemIfNotPresent || !groupHasMmItem) {
+      if (userSettings.items.recreateItemIfNotPresent && !groupHasMmItem) {
 
         itemMetaData = {
           stateDescription: {
@@ -488,7 +487,7 @@ function createAndUpdateItems() {
           logger.error('Could not create item with name ' + wasteItemName);
         }
       } else {
-        logger.debug('Do not create item. userSettings prevent creation.');
+        logger.warn('Do not create item ' + wasteItemName + '. userSettings prevent creation.');
       }
     }
 
@@ -538,12 +537,7 @@ function itemsNeedUpdate() {
   //   - State of at least one Member of Group with tag mmItemTag is:
   //      - UNDEF
   //      - isBefore(today)
-  //   - recreateItemIfNotPresent is true
-  if (userSettings.items.recreateItemIfNotPresent) {
-    logger.debug('Items need update because userSettings.items.recreateItemIfNotPresent is true');
-    return true;
-  }
-
+ 
   let groupMembers = groupItem.members.filter(groupMember => {
     return groupMember.tags.includes(mmItemTag);
   });
