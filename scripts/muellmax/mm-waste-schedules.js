@@ -173,7 +173,7 @@ var dateToday = LocalDate.now(ZoneId.of(zoneIdString));
 var mmItemTag = 'mm-waste-schedule';
 
 // const
-var itemTagsForCreation = [mmItemTag, 'Timestamp'];
+var itemTagsForCreation = [mmItemTag];
 
 var wasteURL = '';
 var groupItem = undefined;
