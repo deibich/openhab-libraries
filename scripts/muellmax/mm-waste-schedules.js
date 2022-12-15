@@ -67,7 +67,7 @@ var userSettings = {
     number: ''                         // number from list with available number. see logs, if needed.
   },
   items: {
-    recreateItemIfNotPresent: true,    // Create item again if deleted
+    recreateItemIfNotPresent: true,    // Create item again if deleted. Creates items only on an online request.
     checkItemsBeforeRequest: true,     // Check if state of items in group with tag mm-waste-schedule are NULL/UNDEF or date is before today and do http-request only if required.
     deleteItemsInGroup: false,         // cleanup. removes all items withing provided group which are tagged with tag in mmItemTag (default is mm-waste-schedule)
     stateDescriptionPatternOnCreation: // Add a pattern to the stateDescription of the created items. This only happens once per new item. Let extactly one of the following lines uncommented
@@ -78,6 +78,7 @@ var userSettings = {
       // '%1$td.%1$tm.%1$tY' // 13.05.2022
   }
 };
+
 
 // Use custom Logger. openhab-js logger is one trace by default. I don't like that.
 var logger = Java.type('org.slf4j.LoggerFactory').getLogger('deibich.scripts.mm-waste-schedules');
@@ -92,6 +93,11 @@ var Month = Java.type('java.time.Month')
 
 // DateTimeType to set the state of items
 var DateTimeType = Java.type('org.openhab.core.library.types.DateTimeType')
+
+// Item Metadata
+var MetadataRegistry = osgi.getService('org.openhab.core.items.MetadataRegistry');
+var Metadata = Java.type('org.openhab.core.items.Metadata');
+var MetadataKey = Java.type('org.openhab.core.items.MetadataKey');
 
 // const
 var pageIdentifier = [
@@ -170,6 +176,7 @@ var dateToday = LocalDate.now(ZoneId.of(zoneIdString));
 
 // const
 var mmItemTag = 'mm-waste-schedule';
+var mmItemMetaNamespace = 'mm-waste-schedule';
 
 // const
 var itemTagsForCreation = [mmItemTag];
@@ -179,8 +186,46 @@ var groupItem = undefined;
 var currentSessionId = undefined;
 var previousPageName = undefined;
 var currentPageName = undefined;
-var wasteScheduleDict = {};
+var wasteScheduleDict = {}; // {}
 var itemNamePrefix = undefined;
+
+
+function getMetadata(itemName, namespace) {
+  const result = MetadataRegistry.get(new MetadataKey(namespace, itemName));
+  return result ? result : null;
+}
+
+function setMetadata(itemName, namespace, value, configuration) {
+  const key = new MetadataKey(namespace, itemName);
+  const metadata = new Metadata(key, value, configuration);
+
+  if(getMetadata(itemName, namespace)) {
+    MetadataRegistry.update(metadata);
+  } else {
+    MetadataRegistry.add(metadata);
+  }
+}
+
+function removeMetadata(itemName, namespace) {
+  MetadataRegistry.remove(new MetadataKey(namespace, itemName));
+}
+
+function getSchedulesFromItemMeta(itemName) {
+  const itemMeta = getMetadata(itemName, mmItemMetaNamespace);
+  if(itemMeta) {
+    if(itemMeta.configuration && itemMeta.configuration.size() > 0) {
+      if(itemMeta.configuration.containsKey('schedules')) {
+        return JSON.parse(itemMeta.configuration.schedules);
+      }  
+    }
+  }
+  return [];
+}
+
+function setSchedulesToItemMeta(itemName, schedules) {
+  setMetadata(itemName, mmItemMetaNamespace, '', {schedules: JSON.stringify(schedules)});
+}
+
 
 function setGroupItemFromGroupName() {
   logger.trace('name for groupItem is set to: ' + userSettings.groupName);
@@ -418,18 +463,15 @@ function extractDatesFromMonthPage(monthDoc) {
     }
 
     let dateForEntry = LocalDate.of(currYear, germanMonthToJavaMonth[monthString].getValue(), parseInt(dayString))
-    let stringDateForEntry = dateForEntry.toString();
-
+    logger.trace(dateForEntry.toString());
     monthEntryHtml.select('p').forEach(wasteEle => {
-      wasteScheduleDict[htmlWasteTypeStringToWasteType(wasteEle.html())]['dates'].push(stringDateForEntry)
-    });
+      wasteScheduleDict[htmlWasteTypeStringToWasteType(wasteEle.html())]['dates'].push(dateForEntry)
+    }); 
   });
 
   logger.trace('Sort dates for wasteTypeDict');
   Object.keys(wasteScheduleDict).forEach(key => {
-    wasteScheduleDict[key]['dates'] = wasteScheduleDict[key]['dates'].sort((a, b) => {
-      let dateA = LocalDate.parse(a);
-      let dateB = LocalDate.parse(b);
+    wasteScheduleDict[key]['dates'] = wasteScheduleDict[key]['dates'].sort((dateA, dateB) => {
       if (dateA.isBefore(dateB)) {
         return -1;
       }
@@ -443,11 +485,6 @@ function extractDatesFromMonthPage(monthDoc) {
 }
 
 function createAndUpdateItems() {
-  let groupHasMmItem = false;
-  groupHasMmItem = groupItem.members.some(groupMember => {
-    return groupMember.tags.includes(mmItemTag);
-  });
-
   Object.keys(wasteScheduleDict).forEach(key => {
     let wasteItemForName = undefined;
     let wasteItemName = htmlWasteTypeStringToWasteType(itemNamePrefix + ' ' + key);
@@ -460,7 +497,7 @@ function createAndUpdateItems() {
 
     if (wasteItemForName === undefined) {
       // Could not find item
-      if (userSettings.items.recreateItemIfNotPresent && !groupHasMmItem) {
+      if (userSettings.items.recreateItemIfNotPresent) {
 
         itemMetaData = {
           stateDescription: {
@@ -492,15 +529,16 @@ function createAndUpdateItems() {
     }
 
     if (wasteItemForName !== undefined) {
+      setSchedulesToItemMeta(wasteItemName, wasteScheduleDict[key]['dates'].map(ld => ld.toString()));
       let currWasteItemState = wasteItemForName.state;
       if (wasteScheduleDict[key]['dates'].length > 0) {
 
         let dateForPossibleNewState = undefined;
         
         let possibleNewState = undefined;
-        
+
         for (let idx = 0; idx < wasteScheduleDict[key]['dates'].length; idx++) {
-          dateForPossibleNewState = LocalDate.parse(wasteScheduleDict[key]['dates'][idx]);
+          dateForPossibleNewState = wasteScheduleDict[key]['dates'][idx];
           possibleNewState = new DateTimeType(dateForPossibleNewState.atStartOfDay(ZoneId.of('Europe/Berlin')));
           if(dateForPossibleNewState.isAfter(dateToday) || dateForPossibleNewState.isEqual(dateToday)) {
             break;
@@ -537,6 +575,7 @@ function itemsNeedUpdate() {
   //   - State of at least one Member of Group with tag mmItemTag is:
   //      - UNDEF
   //      - isBefore(today)
+  // If state of an item is undef or before today, try to update it with its metadata information.
  
   let groupMembers = groupItem.members.filter(groupMember => {
     return groupMember.tags.includes(mmItemTag);
@@ -546,16 +585,131 @@ function itemsNeedUpdate() {
     logger.debug('Items need update because there are no groupmembers with tag ' + mmItemTag);
     return true;
   }
+    
+  groupMembers.forEach(member => {
+    if(member.state === 'NULL' || member.rawState.getZonedDateTime().toLocalDate().isBefore(dateToday)) {
+      let currMemberRequiresUpdate = true;
+      
+      schedulesForMember = getSchedulesFromItemMeta(member.name);
+      for (let scheduleIdx = 0; scheduleIdx < schedulesForMember.length; scheduleIdx++) {
+        const sched = LocalDate.parse(schedulesForMember[scheduleIdx]);
+        if(sched.isAfter(dateToday.minusDays(1))) {
+          currMemberRequiresUpdate = false;
+          member.sendCommand(new DateTimeType(sched.atStartOfDay(ZoneId.of('Europe/Berlin'))));
+          break;
+        }
+      }
+      if(currMemberRequiresUpdate) {
+        updateRequired = true;  
+      }
+    }
+  });
   
-  updateRequired = groupMembers.some(groupMember => {
-    return groupMember.state === 'NULL' || groupMember.rawState.getZonedDateTime().toLocalDate().isBefore(dateToday);
-  })
   logger.debug('Update is required: ' + updateRequired);
   return updateRequired;
 }
 
 function buildWasteUrl(wasteCollectionShortcut) {
   return 'https://www.muellmax.de/abfallkalender/' + wasteCollectionShortcut + '/res/' + wasteCollectionShortcut.charAt(0).toUpperCase() + wasteCollectionShortcut.slice(1) + 'Start.php';
+}
+
+function traversePages() {
+  // Get Start
+  let doc = getStartPage();
+  if (doc === undefined) {
+    logger.error('Exit. startPage is not available.');
+    return null;
+  }
+
+  currentPageName = getPageNameFromDoc(doc);
+  previousPageName = currentPageName;
+  if (previousPageName == undefined) {
+    logger.error('Exit. Can\'t set previousPageName for startPage.');
+    return null;
+  }
+  setSessionIdFromDoc(doc);
+
+  // Goto first page with input
+  doc = gotoPage({ 'mm_aus_ort': '' });
+  if (doc === undefined) {
+    logger.error('Exit. processStart returned undefined.');
+    return null;
+  }
+
+  // Process Pages until we reach page 'format'
+  logger.trace('Process Pages before while');
+
+  while (allowedPageTransitions[previousPageName].indexOf(currentPageName) > -1 && currentPageName !== 'format') {
+    logger.trace('Inside while with previousPageName: ' + previousPageName + ', currentPageName: ' + currentPageName + ', sessionId: ' + currentSessionId);
+
+    switch (currentPageName) {
+      case 'city_select':
+        // doc = processCity(doc, currentPageName);
+        doc = processPageSelect(doc, currentPageName, 'city', userSettings.location.city, 'mm_frm_ort_sel', 'mm_aus_ort_submit');
+        break;
+      case 'street_text':
+        logger.trace('Street page is with text input');
+        doc = gotoPage({ 'mm_frm_str_name': userSettings.location.street, 'mm_aus_str_txt_submit': 'suchen' });
+        break;
+      case 'street_select':
+        // doc = processStreet(doc, currentPageName); 
+        doc = processPageSelect(doc, currentPageName, 'street', userSettings.location.street, 'mm_frm_str_sel', 'mm_aus_str_txt_submit');
+        break;
+      case 'number_select':
+        // doc = processNumber(doc, currentPageName);
+        doc = processPageSelect(doc, currentPageName, 'number', userSettings.location.number, 'mm_frm_hnr_sel', 'mm_aus_hnr_sel_submit');
+        break;
+    }
+
+    if (doc === undefined) {
+      logger.debug('Exit. doc is undefined inside while.inside while loop');
+      return null;
+    }
+  }
+
+  logger.trace('After while');
+  // Now we have format page
+  if (currentPageName !== 'format') {
+    logger.error('Exit. Could not reach page "format".');
+    return null;
+  }
+
+  // Go to week
+  // Go to week_info
+  // Get all waste types
+  // Go to month
+  // Get new entries
+
+  // Goto week
+  doc = gotoPage({ 'mm_woc': '' }, 'week');
+  if (doc === undefined) {
+    logger.error('Exit. Could not reach page "week".');
+    return null;
+  }
+
+  // Goto week_info
+  doc = gotoPage({ 'mm_inf_woche': '' }, 'week_info');
+  if (doc === undefined) {
+    logger.error('Exit. Could not reach page "week_info".');
+    return null;
+  }
+
+  // Get all waste types
+  wasteScheduleDict = extractWasteTypesFromWeekInfo(doc);
+
+  if (wasteScheduleDict === undefined) {
+    errorMsg('Exit. No wasteTypes found.');
+    return null;
+  }
+
+  // go to month 
+  doc = gotoPage({ 'mm_mon': '' }, 'month');
+  if (doc === undefined) {
+    logger.error('Exit. Could not reach page "month".')
+    return null;
+  }
+
+  return doc;
 }
 
 function process() {
@@ -597,103 +751,12 @@ function process() {
     return;
   }
 
-  // Get Start
-  let doc = getStartPage();
-  if (doc === undefined) {
-    logger.error('Exit. startPage is not available.');
-    return;
+  let doc = traversePages();
+  if(doc != null) {
+    // get all wasteTypes from month page with dates
+    extractDatesFromMonthPage(doc);
+    createAndUpdateItems();
   }
-
-  currentPageName = getPageNameFromDoc(doc);
-  previousPageName = currentPageName;
-  if (previousPageName == undefined) {
-    logger.error('Exit. Can\'t set previousPageName for startPage.');
-    return;
-  }
-  setSessionIdFromDoc(doc);
-
-  // Goto first page with input
-  doc = gotoPage({ 'mm_aus_ort': '' });
-  if (doc === undefined) {
-    logger.error('Exit. processStart returned undefined.');
-    return;
-  }
-
-  // Process Pages until we reach page 'format'
-  logger.trace('Process Pages before while');
-
-  while (allowedPageTransitions[previousPageName].indexOf(currentPageName) > -1 && currentPageName !== 'format') {
-    logger.trace('Inside while with previousPageName: ' + previousPageName + ', currentPageName: ' + currentPageName + ', sessionId: ' + currentSessionId);
-
-    switch (currentPageName) {
-      case 'city_select':
-        // doc = processCity(doc, currentPageName);
-        doc = processPageSelect(doc, currentPageName, 'city', userSettings.location.city, 'mm_frm_ort_sel', 'mm_aus_ort_submit');
-        break;
-      case 'street_text':
-        logger.trace('Street page is with text input');
-        doc = gotoPage({ 'mm_frm_str_name': userSettings.location.street, 'mm_aus_str_txt_submit': 'suchen' });
-        break;
-      case 'street_select':
-        // doc = processStreet(doc, currentPageName); 
-        doc = processPageSelect(doc, currentPageName, 'street', userSettings.location.street, 'mm_frm_str_sel', 'mm_aus_str_txt_submit');
-        break;
-      case 'number_select':
-        // doc = processNumber(doc, currentPageName);
-        doc = processPageSelect(doc, currentPageName, 'number', userSettings.location.number, 'mm_frm_hnr_sel', 'mm_aus_hnr_sel_submit');
-        break;
-    }
-
-    if (doc === undefined) {
-      logger.debug('Exit. doc is undefined inside while.inside while loop');
-      return;
-    }
-  }
-
-  logger.trace('After while');
-  // Now we have format page
-  if (currentPageName !== 'format') {
-    logger.error('Exit. Could not reach page "format".');
-    return;
-  }
-
-  // Go to week
-  // Go to week_info
-  // Get all waste types
-  // Go to month
-  // Get new entries
-
-  // Goto week
-  doc = gotoPage({ 'mm_woc': '' }, 'week');
-  if (doc === undefined) {
-    logger.error('Exit. Could not reach page "week".');
-    return;
-  }
-
-  // Goto week_info
-  doc = gotoPage({ 'mm_inf_woche': '' }, 'week_info');
-  if (doc === undefined) {
-    logger.error('Exit. Could not reach page "week_info".');
-    return;
-  }
-
-  // Get all waste types
-  wasteScheduleDict = extractWasteTypesFromWeekInfo(doc);
-  if (wasteScheduleDict === undefined) {
-    errorMsg('Exit. No wasteTypes found.');
-    return;
-  }
-
-  // go to month 
-  doc = gotoPage({ 'mm_mon': '' }, 'month');
-  if (doc === undefined) {
-    logger.error('Exit. Could not reach page "month".')
-    return;
-  }
-  // get all wasteTypes from month page with dates
-  extractDatesFromMonthPage(doc);
-  createAndUpdateItems();
-
 }
 
 logger.trace('begin mm-waste-schedules');
