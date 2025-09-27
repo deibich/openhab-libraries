@@ -4,16 +4,15 @@ MM-Waste-Schedules provides schedules for local waste collection services in ger
 
 ## Requirements
 
-This script uses _JSScripting_ to perform item creation and modification.
-To install JSScripting go to:
+This script uses _JavaScript Scripting_ to perform item creation and modification.
+To install JavaScript Scripting go to:
 
-```Settings -> Automation -> Language & Technologies -> JSScripting```
+```Add-on Store -> Automation -> Language & Technologies -> JavaScript Scripting```
 
 _Jsoup_ is used to perform and parse web requests and is shipped with other bindings or addons.
-The easiest way to get Jsoup is to install Jinja transformation. 
-Go to:
+One of the following bindings should work:
 
-```Settings -> Other Add-Ons ->  Transformation Add-ons  -> Jinja Transformation```
+```ahawaste, smgw, enphase, verisure, ipobserver, generacmobilelink or kostalinverter```
 
 ## Howto
 See script
