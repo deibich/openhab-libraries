@@ -24,34 +24,34 @@ MM-Waste-Schedules provides schedules for local waste collection services in ger
 This script needs _JSScripting_ to perform item creation and modification.
 To install JSScripting go to:
 
-```Settings -> Automation -> Language & Technologies -> JSScripting```
+```Add-on Store -> Automation -> Language & Technologies -> JavaScript Scripting```
 
-_Jsoup_ is used to perform and parse web requests and is shipped with other bindings or addons.
+_Jsoup_ is used to perform and parse web requests and is shipped with other bindings or add-ons.
 OH < 4.2: Install Jinja transformation. 
-OH 4.2 and up: Jinja no longer ships with Jsoup. One of the folowwing bindings is required: ahawaste, smgw, linky, enphase, verisure, ipobserver, generacmobilelink or kostalinverter.
+OH 4.2 and up: Jinja no longer ships with Jsoup. One of the following bindings is required: ahawaste, smgw, enphase, verisure, ipobserver, generacmobilelink or kostalinverter.
 
 ## Howto
 First install the dependencies from "Requirements" above.
 
 As rule:
-Create a new rule with script (ECMAScript 262 Edition 11) in mainUI and paste the whole content of the script.
+Create a new rule with script (ECMAScript 262 Edition 11) in MainUI and paste the whole script.
 
 Get the shortcut for your region from the table above and paste it into userSettings.location.wasteCollectionShortcut.
 You need a group item which will hold the items for all schedules. Paste the name of the group item into userSettings.groupName.
 
 Save and run the rule/script. 
-Open your logfile and look for outputs from "deibich.scripts.mm-waste-schedules".
-You should see several options for userSettings.location.city, userSettings.location.street or userSettings.location.number.
+Open your log file or log viewer and look for outputs from "org.openhab.deibich.scripts.mmWasteSchedules".
+You should see several options for userSettings.location.city, userSettings.location.street, or userSettings.location.number.
 Search your city, street or number in the logs, paste it into the correct variable and rerun the script until the options for your location are set.
 Not all options are required.
 
-The script creates several items as member of the provided group item "groupName".
+The script creates several items as members of the provided group item "groupName".
 Do not change the options under userSettings.location after the items are created.
 
-Check the created items and delete the items you don't need.
+Check the created items and delete any items you don't need.
 Set userSettings.items.recreateItemIfNotPresent to false to prevent recreation of the deleted items.
 
-Now you can add a trigger:
+Now you can add triggers to check for new schedules:
 e.g. System Event - Startup complete and a Time Event shortly after midnight.
 
 */
@@ -59,26 +59,25 @@ e.g. System Event - Startup complete and a Time Event shortly after midnight.
 var userSettings = {
   groupName: '',                       // Items get created within this group. required
   location: {
-    wasteCollectionShortcut: '',                 // waste provider shortcut. required. Available options see table.
+    wasteCollectionShortcut: '',       // waste provider shortcut. required. Available options see table.
     city: '',                          // city from list with available cities. see logs, if needed.
     street: '',                        // street from list with available street. see logs, if needed.
     number: ''                         // number from list with available number. see logs, if needed.
   },
   items: {
-    recreateItemIfNotPresent: true,    // Create item again if deleted
+    recreateItemIfNotPresent: false,    // Create item again if deleted
     checkItemsBeforeRequest: true,     // Check if state of items in group with tag mm-waste-schedule are NULL/UNDEF or date is before today and do http-request only if required.
-    deleteItemsInGroup: false,         // cleanup. removes all items withing provided group which are tagged with tag in mmItemTag (default is mm-waste-schedule)
-    stateDescriptionPatternOnCreation: // Add a pattern to the stateDescription of the created items. This only happens once per new item. Let extactly one of the following lines uncommented
+    deleteItemsInGroup: false,         // cleanup. removes all items within provided group which are tagged with tag in mmItemTag (default is mm-waste-schedule)
+    stateDescriptionPatternOnCreation: // Add a pattern to the stateDescription of the created items. This only happens once per new item. Let exactly one of the following lines uncommented
       ''
-      // '%1$td.%1$tm'       // 13.01
-      // '%1$ta, %1$td.%1$tm'       // Thu, 13.01
-      // '%1$td.%1$tm.%1$ty' // 13.05.22
-      // '%1$td.%1$tm.%1$tY' // 13.05.2022
+    // '%1$td.%1$tm'       // 13.01
+    // '%1$ta, %1$td.%1$tm'       // Thu, 13.01
+    // '%1$td.%1$tm.%1$ty' // 13.05.22
+    // '%1$td.%1$tm.%1$tY' // 13.05.2022
   }
 };
 
-// Use custom Logger. openhab-js logger is one trace by default. I don't like that.
-var logger = Java.type('org.slf4j.LoggerFactory').getLogger('deibich.scripts.mm-waste-schedules');
+console.loggerName = 'org.openhab.deibich.scripts.mmWasteSchedules';
 
 // Use Jsoup for http requests and processing. TODO: Switch to JS variant if available. I could use HTTP action but I'm not able to parse html.
 var Jsoup = Java.type('org.jsoup.Jsoup');
@@ -181,18 +180,18 @@ var wasteScheduleDict = {};
 var itemNamePrefix = undefined;
 
 function setGroupItemFromGroupName() {
-  logger.trace('name for groupItem is set to: ' + userSettings.groupName);
+  console.trace('name for groupItem is set to: ', userSettings.groupName);
   try {
     groupItem = items.getItem(userSettings.groupName);
     if (groupItem.type !== 'GroupItem' && groupItem.type !== 'Group') {
-      logger.error('Can\'t find a GroupItem with the provided group name. Please set a valid group name at the top of the script.');
+      console.error('Can\'t find a GroupItem with the provided group name. Please set a valid group name at the top of the script.');
       groupItem = undefined;
     } else {
-      logger.trace('Provided group name: ' + userSettings.groupName + ' results in a valid group');
+      console.trace('Provided group name: ', userSettings.groupName, ' results in a valid group');
     }
   } catch (e) {
-    logger.debug(e.toString());
-    logger.error('Error while retrieving group item. Please select a valid Group in the rule template.');
+    console.debug(e.toString());
+    console.error('Error while retrieving group item. Please select a valid Group in the rule template.');
   }
 }
 
@@ -200,12 +199,12 @@ function setSessionIdFromDoc(doc) {
   currentSessionId = undefined;
   let elementWithSessionId = doc.selectFirst('input[name=mm_ses]');
   if (elementWithSessionId === null) {
-    logger.error('Could not find sessionId in provided document');
-    logger.trace(doc.toString());
+    console.error('Could not find sessionId in provided document');
+    console.trace(doc.toString());
     return;
   }
   currentSessionId = elementWithSessionId.attr('value');
-  // logger.trace('found sessionId: ' + currentSessionId);
+  console.debug('found sessionId: ', currentSessionId);
 }
 
 function getStartPage() {
@@ -213,21 +212,21 @@ function getStartPage() {
   try {
     pageToReturn = Jsoup.connect(wasteURL).get();
   } catch (e) {
-    logger.error('Error on get request for startPage');
-    logger.debug(e.toString());
+    console.error('Error on get request for startPage');
+    console.debug(e.toString());
     pageToReturn = undefined;
   }
   return pageToReturn;
 }
 
 function postPage(argumentDict) {
-  logger.trace('begin postPage with arguments: ' + JSON.stringify(argumentDict));
+  console.trace('begin postPage with arguments: ', JSON.stringify(argumentDict));
   let pageToReturn = undefined;
   try {
     pageToReturn = Jsoup.connect(wasteURL).data(argumentDict).post();
   } catch (e) {
-    logger.error('postPage request with error');
-    logger.debug(e.toString());
+    console.error('postPage request with error');
+    console.debug(e.toString());
     pageToReturn = undefined;
   }
   return pageToReturn;
@@ -237,68 +236,68 @@ function getPageNameFromDoc(doc) {
 
   let navList = doc.select('#m_box > ul[class$=hidden]');
   if (navList.isEmpty()) {
-    logger.error('Cant\'t find navList on page');
+    console.error('Cant\'t find navList on page');
     return undefined;
   }
 
   let navElements = navList.select('li > a[href]');
-  logger.trace('Found ' + navElements.size() + ' entries in navList');
+  console.trace('Found ', navElements.size(), ' entries in navList');
 
   let pageId = undefined;
 
   navElements.forEach(element => {
     if (pageIdentifier.includes(element.attr('href'))) {
       pageId = element.attr('href');
-      logger.trace('Current element has pageId: ' + pageId);
+      console.trace('Current element has pageId: ', pageId);
       return;
     }
   });
 
   if (pageId === undefined) {
-    logger.error('Could not identify current page');
+    console.error('Could not identify current page');
     return undefined;
   }
 
-  logger.trace('Found pageId ' + pageId);
+  console.trace('Found pageId ' + pageId);
   if (pageId == '#m_strassenauswahl') {
-    logger.trace('pageId is special');
+    console.trace('pageId is special');
     if (doc.getElementById('mm_frm_str_name') !== null) {
       pageId = pageId + '#mm_frm_str_name';
     } else {
       pageId = pageId + '#mm_frm_str_sel';
     }
-    logger.trace('Changed pageId to ' + pageId);
+    console.trace('Changed pageId to ' + pageId);
   }
 
-  logger.trace('final pageId is: ' + pageId);
+  console.trace('final pageId is: ' + pageId);
 
   if (!Object.keys(pageMappings).includes(pageId)) {
-    logger.error('Could not identify current page with identifier' + pageId);
-    logger.trace('end getPageNameFromDoc');
+    console.error('Could not identify current page with identifier', pageId);
+    console.trace('end getPageNameFromDoc');
     return undefined;
   }
 
   let pageName = pageMappings[pageId];
 
-  logger.trace('end getPageNameFromDoc with pageName: ' + pageName);
+  console.trace('end getPageNameFromDoc with pageName: ', pageName);
   return pageName
 }
 
 function gotoPage(argumentDict, ...expectedPageNames) {
-  logger.trace('begin gotoPage with expectedPageNames: ' + expectedPageNames);
+  console.trace('begin gotoPage with expectedPageNames: ', expectedPageNames);
   argumentDict['mm_ses'] = currentSessionId;
 
   let pageToReturn = postPage(argumentDict);
   if (pageToReturn === undefined) {
-    logger.error('Exit because request returned undefined document');
+    console.error('Exit because request returned undefined document');
     return undefined;
   }
-  logger.trace('set previousPageName to: ' + currentPageName);
+  console.trace('set previousPageName to: ', currentPageName);
   previousPageName = currentPageName;
 
   currentPageName = getPageNameFromDoc(pageToReturn);
   if (currentPageName === undefined || (expectedPageNames.length > 0 && !expectedPageNames.includes(currentPageName))) {
-    logger.error('Exit because could not reach one of the following pages: ' + JSON.stringify(expectedPageNames));
+    console.error('Exit because could not reach one of the following pages: ', JSON.stringify(expectedPageNames));
     return undefined;
   }
 
@@ -317,38 +316,38 @@ function htmlWasteTypeStringToWasteType(htmlString) {
 }
 
 function processPageSelect(doc, pageName, userSettingName, userSettingForLocation, selectionIdentifier, submitIdentifier) {
-  logger.trace('begin processPageSelect with pageName: ' + pageName);
+  console.trace('begin processPageSelect with pageName: ', pageName);
 
-  logger.trace('Search ' + userSettingName + ' on page');
+  console.trace('Search ' + userSettingName + ' on page');
   let availableElements = doc.getElementById(selectionIdentifier);
   if (availableElements === null) {
-    logger.error('Could not find options for ' + userSettingName);
+    console.error('Could not find options for ', userSettingName);
     return undefined;
   }
 
   availableElements = availableElements.select('option');
   let keyNames = {};
 
-  logger.debug('Found ' + availableElements.size() + ' entries for ' + userSettingName);
+  console.debug('Found ', availableElements.size(), ' entries for ', userSettingName);
   availableElements.forEach(element => {
     keyNames[element.attr('value')] = element.html();
   });
-  logger.debug(JSON.stringify(keyNames));
+  console.debug(JSON.stringify(keyNames));
 
-  logger.trace('Check if ' + userSettingName + ' in userSettings.location is in available ' + userSettingName);
+  console.trace('Check if ', userSettingName, ' in userSettings.location is in available ', userSettingName);
   if (!Object.keys(keyNames).includes(userSettingForLocation)) {
-    logger.trace('Provided ' + userSettingName + ' not available.');
-    let output = [];
+    console.trace('Provided ', userSettingName, ' not available.');
+    console.error('Please enter a valid ', userSettingName, ' from the following list:');
     Object.keys(keyNames).forEach(key => {
       if (key.includes(userSettingForLocation)) {
-        output.push(userSettingName + ': ' + keyNames[key] + ' - Set userSettings.location.' + userSettingName + ' to: \'' + key + '\'');
+        console.error(userSettingName, ': ', keyNames[key], ' - Set userSettings.location.', userSettingName, ' to: \'', key, '\'');
       }
     });
-    logger.error('Please enter a valid ' + userSettingName + ' from the following list:\n' + output.join('\n'));
+
     return undefined;
   }
 
-  logger.debug(userSettingName + ' is available');
+  console.debug(userSettingName, ' is available');
   let requestDict = {};
   requestDict[selectionIdentifier] = userSettingForLocation;
   requestDict[submitIdentifier] = 'weiter';
@@ -360,32 +359,31 @@ function extractWasteTypesFromWeekInfo(infoDoc) {
 
   let docElements = infoDoc.select('div[class=m_art_text]');
   if (docElements == null || docElements.size() < 1) {
-    logger.error('Could not find any wasteTypes');
+    console.error('Could not find any waste types');
     return undefined;
   }
   let wasteTypes = {};
-  logger.trace('Found ' + docElements.size() + ' possible wasteTypes');
+  console.trace('Found ', docElements.size(), ' possible waste types');
   docElements.forEach(element => {
     let stringVal = element.html();
     let currWasteType = htmlWasteTypeStringToWasteType(stringVal);
     wasteTypes[currWasteType] = { 'name': stringVal, 'dates': [] };
-    // logger.trace('Found wasteType: ' + stringVal + 'with key: ' + currWasteType);
   })
-  logger.debug('Found ' + Object.keys(wasteTypes).length + ' wasteTypes');
-  logger.debug(JSON.stringify(wasteTypes));
+  console.debug('Found ', Object.keys(wasteTypes).length, ' waste types.');
+  console.debug(JSON.stringify(wasteTypes));
   return wasteTypes;
 }
 
 function extractDatesFromMonthPage(monthDoc) {
   let monthEntriesHtml = monthDoc.select('div[class=m_day]');
-  logger.trace('Found ' + monthEntriesHtml.size() + ' entries');
+  console.trace('Found ', monthEntriesHtml.size(), ' entries');
   let oneWasDecember = dateToday.getMonthValue() == 12;
 
   monthEntriesHtml.forEach((monthEntryHtml, idx) => {
     let monthDateElementsHtml = monthEntryHtml.select('h1, h2, h3, h4, h5, h6, h7');
 
     if (monthDateElementsHtml.size() < 1) {
-      logger.error('Can\'t find montDateElement for monthEntry. Try next one.');
+      console.error('Can\'t find monthDateElement for monthEntry. Try the next one.');
       return;
     }
 
@@ -396,13 +394,13 @@ function extractDatesFromMonthPage(monthDoc) {
       dayString = monthDayString[0].slice(0, -1);
       monthString = monthDayString[1];
     } catch (e) {
-      logger.warn('Could not extract day and month. Try next one');
-      logger.trace(e.toString());
+      console.warn('Could not extract day and month. Try the next one');
+      console.trace(e.toString());
       return;
     }
 
     if (!Object.keys(germanMonthToJavaMonth).includes(monthString)) {
-      logger.trace('Extracted month is not in mapping-dict: ' + monthString + ' Try next one');
+      console.trace('Extracted month is not in mapping-dict: ', monthString, ' Try the next one');
       return;
     }
 
@@ -423,7 +421,7 @@ function extractDatesFromMonthPage(monthDoc) {
     });
   });
 
-  logger.trace('Sort dates for wasteTypeDict');
+  console.trace('Sort dates for wasteTypeDict');
   Object.keys(wasteScheduleDict).forEach(key => {
     wasteScheduleDict[key]['dates'] = wasteScheduleDict[key]['dates'].sort((a, b) => {
       let dateA = LocalDate.parse(a);
@@ -437,7 +435,7 @@ function extractDatesFromMonthPage(monthDoc) {
       return 0;
     });
   });
-  logger.debug(JSON.stringify(wasteScheduleDict));
+  console.debug(JSON.stringify(wasteScheduleDict));
 }
 
 function createAndUpdateItems() {
@@ -453,7 +451,7 @@ function createAndUpdateItems() {
     try {
       wasteItemForName = items.getItem(wasteItemName);
     } catch (e) {
-      logger.debug(e.toString());
+      console.debug(e.toString());
     }
 
     if (wasteItemForName === undefined) {
@@ -479,13 +477,13 @@ function createAndUpdateItems() {
             channels: undefined,
             metadata: itemMetaData
           });
-          logger.debug('Item ' + wasteItemName + ' created');
+          console.debug('Item ', wasteItemName, ' created');
         } catch (e) {
-          logger.trace(e.toString());
-          logger.error('Could not create item with name ' + wasteItemName);
+          console.trace(e.toString());
+          console.error('Could not create item with name ' + wasteItemName);
         }
       } else {
-        logger.warn('Do not create item ' + wasteItemName + '. userSettings prevent creation.');
+        console.warn('Do not create item ', wasteItemName, '. userSettings prevent item creation.');
       }
     }
 
@@ -494,35 +492,35 @@ function createAndUpdateItems() {
       if (wasteScheduleDict[key]['dates'].length > 0) {
 
         let dateForPossibleNewState = undefined;
-        
+
         let possibleNewState = undefined;
-        
+
         for (let idx = 0; idx < wasteScheduleDict[key]['dates'].length; idx++) {
           dateForPossibleNewState = LocalDate.parse(wasteScheduleDict[key]['dates'][idx]);
           possibleNewState = new DateTimeType(dateForPossibleNewState.atStartOfDay(ZoneId.of('Europe/Berlin')));
-          if(dateForPossibleNewState.isAfter(dateToday) || dateForPossibleNewState.isEqual(dateToday)) {
+          if (dateForPossibleNewState.isAfter(dateToday) || dateForPossibleNewState.isEqual(dateToday)) {
             break;
           }
         }
 
-        if (currWasteItemState === 'NULL') {
+        if (currWasteItemState === null) {
           wasteItemForName.sendCommand(possibleNewState);
         } else {
-          let currentItemZDT = wasteItemForName.rawState.getZonedDateTime();
+          let currentItemZDT = wasteItemForName.rawState.getZonedDateTime(ZoneId.systemDefault());
           let currentItemLD = currentItemZDT.toLocalDate();
           if (dateToday.isAfter(currentItemLD)) {
             try {
               wasteItemForName.sendCommand(possibleNewState);
             } catch (e) {
-              logger.debug('Error on update for item ' + wasteItemForName + ' with state ' + possibleNewState.toString());
-              logger.trace(e.toString());
+              console.debug('Error on update for item ', wasteItemForName, ' with state ', possibleNewState.toString());
+              console.trace(e.toString());
             }
           } else {
-            logger.trace('No new state for ' + wasteItemForName.name + ' required');
+            console.trace('No new state for ', wasteItemForName.name, ' required');
           }
         }
       } else {
-        logger.debug('No schedules for ' + wasteItemForName.name + ' available.')
+        console.debug('No schedules available for ', wasteItemForName.name)
       }
     }
   });
@@ -535,20 +533,21 @@ function itemsNeedUpdate() {
   //   - State of at least one Member of Group with tag mmItemTag is:
   //      - UNDEF
   //      - isBefore(today)
- 
+
   let groupMembers = groupItem.members.filter(groupMember => {
     return groupMember.tags.includes(mmItemTag);
   });
 
   if (groupMembers.length < 1) {
-    logger.debug('Items need update because there are no groupmembers with tag ' + mmItemTag);
+    console.debug('Items need update because there are no group members with tag ', mmItemTag);
     return true;
   }
-  
-  updateRequired = groupMembers.some(groupMember => {
-    return groupMember.state === 'NULL' || groupMember.rawState.getZonedDateTime().toLocalDate().isBefore(dateToday);
+
+  updateRequired = groupMembers.some(groupMember => {groupMembers
+    console.debug(groupMember.state);
+    return groupMember.state === null || groupMember.rawState.getZonedDateTime(ZoneId.systemDefault()).toLocalDate().isBefore(dateToday);
   })
-  logger.debug('Update is required: ' + updateRequired);
+  console.debug('Update is required: ', updateRequired);
   return updateRequired;
 }
 
@@ -557,10 +556,10 @@ function buildWasteUrl(wasteCollectionShortcut) {
 }
 
 function process() {
-  logger.debug('Start mm-waste-schedules with settings: ' + JSON.stringify(userSettings));
+  console.debug('Start mm-waste-schedules with settings: ', JSON.stringify(userSettings));
 
   if (userSettings.location.wasteCollectionShortcut === undefined || userSettings.location.wasteCollectionShortcut.length < 3) {
-    logger.error('Need userSettings.location.wasteCollectionShortcut to proceed. Please set it at the top of the script.');
+    console.error('Need userSettings.location.wasteCollectionShortcut to proceed. Please set it at the top of the script.');
     return;
   }
 
@@ -568,44 +567,44 @@ function process() {
   setGroupItemFromGroupName();
 
   if (groupItem === undefined) {
-    logger.error('Exit. userSettings.groupName does not return a valid GroupItem.');
+    console.error('Exit. userSettings.groupName does not return a valid GroupItem.');
     return;
   }
 
   itemNamePrefix = htmlWasteTypeStringToWasteType([userSettings.location.wasteCollectionShortcut, userSettings.location.city, userSettings.location.street, userSettings.location.number].join(' '))
 
   if (userSettings.items.deleteItemsInGroup) {
-    logger.warn('Delete Items is set');
+    console.warn('Delete Items is set');
     groupItem.members.forEach(possibleItemToRemove => {
       if (possibleItemToRemove.tags.includes(mmItemTag)) {
-        logger.warn('Remove: ' + possibleItemToRemove.name);
+        console.warn('Remove: ', possibleItemToRemove.name);
         try {
           items.removeItem(possibleItemToRemove.name);
         } catch (e) {
-          logger.warn(e.toString());
+          console.warn(e.toString());
         }
       }
     });
-    logger.warn('Exit after delete.');
+    console.warn('Exit after delete.');
     return;
   }
 
   if (userSettings.items.checkItemsBeforeRequest && !itemsNeedUpdate()) {
-    logger.trace('Items don\'t need an update.');
+    console.trace('Items don\'t need an update.');
     return;
   }
 
   // Get Start
   let doc = getStartPage();
   if (doc === undefined) {
-    logger.error('Exit. startPage is not available.');
+    console.error('Exit. startPage is not available.');
     return;
   }
 
   currentPageName = getPageNameFromDoc(doc);
   previousPageName = currentPageName;
   if (previousPageName == undefined) {
-    logger.error('Exit. Can\'t set previousPageName for startPage.');
+    console.error('Exit. Can\'t set previousPageName for startPage.');
     return;
   }
   setSessionIdFromDoc(doc);
@@ -613,15 +612,15 @@ function process() {
   // Goto first page with input
   doc = gotoPage({ 'mm_aus_ort': '' });
   if (doc === undefined) {
-    logger.error('Exit. processStart returned undefined.');
+    console.error('Exit. processStart returned undefined document.');
     return;
   }
 
   // Process Pages until we reach page 'format'
-  logger.trace('Process Pages before while');
+  console.trace('Process Pages before while');
 
   while (allowedPageTransitions[previousPageName].indexOf(currentPageName) > -1 && currentPageName !== 'format') {
-    logger.trace('Inside while with previousPageName: ' + previousPageName + ', currentPageName: ' + currentPageName + ', sessionId: ' + currentSessionId);
+    console.trace('Inside while with previousPageName: ', previousPageName, ', currentPageName: ', currentPageName, ', sessionId: ', currentSessionId);
 
     switch (currentPageName) {
       case 'city_select':
@@ -629,7 +628,7 @@ function process() {
         doc = processPageSelect(doc, currentPageName, 'city', userSettings.location.city, 'mm_frm_ort_sel', 'mm_aus_ort_submit');
         break;
       case 'street_text':
-        logger.trace('Street page is with text input');
+        console.trace('Street page is with text input');
         doc = gotoPage({ 'mm_frm_str_name': userSettings.location.street, 'mm_aus_str_txt_submit': 'suchen' });
         break;
       case 'street_select':
@@ -643,15 +642,15 @@ function process() {
     }
 
     if (doc === undefined) {
-      logger.debug('Exit. doc is undefined inside while.inside while loop');
+      console.debug('Exit. doc is undefined inside while.');
       return;
     }
   }
 
-  logger.trace('After while');
+  console.trace('After while');
   // Now we have format page
   if (currentPageName !== 'format') {
-    logger.error('Exit. Could not reach page "format".');
+    console.error('Exit. Could not reach page "format".');
     return;
   }
 
@@ -664,28 +663,28 @@ function process() {
   // Goto week
   doc = gotoPage({ 'mm_woc': '' }, 'week');
   if (doc === undefined) {
-    logger.error('Exit. Could not reach page "week".');
+    console.error('Exit. Could not reach page "week".');
     return;
   }
 
   // Goto week_info
   doc = gotoPage({ 'mm_inf_woche': '' }, 'week_info');
   if (doc === undefined) {
-    logger.error('Exit. Could not reach page "week_info".');
+    console.error('Exit. Could not reach page "week_info".');
     return;
   }
 
   // Get all waste types
   wasteScheduleDict = extractWasteTypesFromWeekInfo(doc);
   if (wasteScheduleDict === undefined) {
-    errorMsg('Exit. No wasteTypes found.');
+    console.error('Exit. No wasteTypes found.');
     return;
   }
 
   // go to month 
   doc = gotoPage({ 'mm_mon': '' }, 'month');
   if (doc === undefined) {
-    logger.error('Exit. Could not reach page "month".')
+    console.error('Exit. Could not reach page "month".')
     return;
   }
   // get all wasteTypes from month page with dates
@@ -694,10 +693,10 @@ function process() {
 
 }
 
-logger.trace('begin mm-waste-schedules');
+console.trace('begin mm-waste-schedules');
 userSettings.location = { ...userSettings.location, ...ctx['location'] };
 userSettings.groupName = userSettings.groupName || ctx['groupName'];
 userSettings.items = { ...userSettings.items, ...ctx['items'] };
 
 process();
-logger.trace('end mm-waste-schedules');
+console.trace('end mm-waste-schedules');
