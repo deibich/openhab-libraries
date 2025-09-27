@@ -1,2 +1,2 @@
-# openhab-libraries
-Libraries and code for OpenhAB
+# My openhab-libraries
+Libraries and other code snippets for OpenHAB
