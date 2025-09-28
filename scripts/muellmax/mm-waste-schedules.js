@@ -456,7 +456,7 @@ function createAndUpdateItems() {
 
     if (wasteItemForName === undefined) {
       // Could not find item
-      if (userSettings.items.recreateItemIfNotPresent && !groupHasMmItem) {
+      if (userSettings.items.recreateItemIfNotPresent) {
 
         itemMetaData = {
           stateDescription: {
@@ -589,7 +589,7 @@ function process() {
     return;
   }
 
-  if (userSettings.items.checkItemsBeforeRequest && !itemsNeedUpdate()) {
+  if (userSettings.items.checkItemsBeforeRequest && !itemsNeedUpdate() && !userSettings.items.recreateItemIfNotPresent) {
     console.trace('Items don\'t need an update.');
     return;
   }
