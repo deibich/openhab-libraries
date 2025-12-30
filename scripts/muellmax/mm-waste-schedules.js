@@ -506,9 +506,12 @@ function createAndUpdateItems() {
         if (currWasteItemState === null) {
           wasteItemForName.sendCommand(possibleNewState);
         } else {
-          let currentItemZDT = wasteItemForName.rawState.getZonedDateTime(ZoneId.systemDefault());
-          let currentItemLD = currentItemZDT.toLocalDate();
-          if (dateToday.isAfter(currentItemLD)) {
+          let currentItemLD = undefined;
+          if(wasteItemForName.rawState.type !== undefined) {
+            let currentItemZDT = wasteItemForName.rawState.getZonedDateTime(ZoneId.systemDefault());
+            currentItemLD = currentItemZDT.toLocalDate();
+          }
+          if (currentItemLD == undefined || dateToday.isAfter(currentItemLD)) {
             try {
               wasteItemForName.sendCommand(possibleNewState);
             } catch (e) {
@@ -545,7 +548,7 @@ function itemsNeedUpdate() {
 
   updateRequired = groupMembers.some(groupMember => {groupMembers
     console.debug(groupMember.state);
-    return groupMember.state === null || groupMember.rawState.getZonedDateTime(ZoneId.systemDefault()).toLocalDate().isBefore(dateToday);
+    return groupMember.state === null || groupMember.rawState.type === undefined || groupMember.rawState.getZonedDateTime(ZoneId.systemDefault()).toLocalDate().isBefore(dateToday);
   })
   console.debug('Update is required: ', updateRequired);
   return updateRequired;
